@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import re
 
 def format_storey_field(dataframe):

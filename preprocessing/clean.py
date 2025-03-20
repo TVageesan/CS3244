@@ -73,7 +73,7 @@ def format_lease_field(dataframe):
     dataframe['remaining_lease'] = dataframe['remaining_lease'].apply(convert_lease_to_float)
 
 
-def clean_data(dataframe):
+def clean_data(dataframe, drop_fields = ['block', 'street_name', 'storey_range', 'lease_commence_date']):
     """
     Clean the data according to requirements:
     1) Transform storey-range -> numerical avg_floor feature
@@ -94,7 +94,7 @@ def clean_data(dataframe):
     format_month_field(df)
     format_lease_field(df)
 
-    df = df.drop(['block', 'street_name', 'storey_range', 'lease_commence_date'], axis=1)
+    df = df.drop(drop_fields, axis=1)
 
     #Re-order for easier visual parsing
     column_order = [

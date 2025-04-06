@@ -281,6 +281,7 @@ def add_moving_window_features(result_df, windows=[3, 6, 12]):
             else:
                 result_df[col] = result_df[col].fillna(result_df['resale_price'].mean())
     
+    result_df = result_df.drop(columns=['date'])
     return result_df
 
 
@@ -303,7 +304,9 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
 
     # Define column groups
     categorical_cols = ['town', 'flat_type', 'flat_model']
-    numerical_cols = ['floor_area_sqm', 'avg_floor', 'remaining_lease']
+    numerical_cols = ['floor_area_sqm', 'avg_floor', 'remaining_lease', 'longitude', 'latitude', 'distance_to_nearest_mrt',
+                      'price_ma_3','price_std_3','price_ema_3','price_ma_6','price_std_6','price_ema_6','price_ma_12','price_std_12','price_ema_12'
+                     ]
     
     if normal_price:
         numerical_cols.append('resale_price')
@@ -315,9 +318,7 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
         for col in numerical_cols:
             if col in df.columns:
                 cap_outliers(df, col)
-    
-    scale_numerical_features(df, numerical_cols)
-    
+        
     if moving_window:
         df = add_moving_window_features(df)
     
@@ -326,6 +327,9 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
 
     if normal_year:
         normalize_year(df) 
+        numerical_cols.append('year')
+
+    scale_numerical_features(df, numerical_cols)
 
     # Encode categorical features according to specified method
     if encoding_method == 'one_hot':

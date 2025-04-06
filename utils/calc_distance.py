@@ -1,9 +1,7 @@
 import pandas as pd
 import math
 
-def main():
-    # Load datasets
-    geocoded_df = pd.read_csv('output/geocoded_data.csv')
+def add_nearest_mrt(geocoded_df):
     mrt_df = pd.read_csv('output/mrt.csv')
 
     # Haversine distance function (in kilometers)
@@ -31,14 +29,4 @@ def main():
         axis=1
     )
 
-    # Select required columns
-    output_df = geocoded_df[
-        ['month', 'town', 'distance_to_nearest_mrt', 'storey_range', 'floor_area_sqm',
-        'flat_model', 'lease_commence_date', 'resale_price', 'remaining_lease',
-        'latitude', 'longitude']
-    ]
-
-    # Save to output CSV
-    output_df.to_csv('output/data_enhanced.csv', index=False)
-
-main()
+    return geocoded_df

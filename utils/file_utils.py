@@ -10,3 +10,4 @@ def read_csv(path):
 def merge_csv(file_paths):
     dataframes = [read_csv(file_path) for file_path in file_paths]
     return pd.concat(dataframes, ignore_index=True)
+

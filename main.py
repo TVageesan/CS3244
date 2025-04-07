@@ -1,23 +1,25 @@
 from utils.file_utils import merge_csv, read_csv
 from utils.calc_distance import add_nearest_mrt
+from utils.geocode import geocode
 from preprocessing.clean import clean_data
 from preprocessing.encode import encode_data
 
 def main():
     csv_files = ['data/2012.csv', 'data/2015.csv', 'data/2017.csv']
-
     print("Merging CSV files...")
 
     merged_data = merge_csv(csv_files)
-    
     merged_data.to_csv('output/data.csv', index=False)
     print("Merged data saved to 'data.csv'")
 
     print("Geocoding data...")
     ## Since there's API Limits, try to use the generated geocoded_data set instead of creating yourself
-    geocoded_data = read_csv('output/geocoded_data.csv')
+    # geocoded_data = geocode(read_csv('output/data.csv'))
+    # geocoded_data.to_csv('data/geocoded.csv')
+
+    geocoded_data = read_csv('data/geocoded.csv')
     enhanced_data = add_nearest_mrt(geocoded_data)
-    cleaned_data = clean_data(enhanced_data)
+    cleaned_data  = clean_data(enhanced_data)
 
     # Extract useful fields
     # Note: Might want to get rid of 'town' field for linear regression,

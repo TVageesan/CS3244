@@ -7,7 +7,7 @@ import os
 # === CONFIGURATION ===
 INPUT_CSV = "output/geocoded_data.csv"
 BACKUP_DIR = "output/backups"
-SAVE_EVERY = 100  # Save every N updates
+SAVE_EVERY = 50000  # Save every N updates
 
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
@@ -41,18 +41,17 @@ def geocode_address(block, street, town):
         )
     return None, None, None, None
 
-def main():
-    df = pd.read_csv(INPUT_CSV)
-
-    # Get rows that need geocoding
-    missing_coords = df[df['latitude'].isna() | df['longitude'].isna()]
-    print(f"Rows needing geocoding: {len(missing_coords)}")
+def geocode(df):
+    
+    for col in ['latitude', 'longitude', 'building', 'address']:
+            if col not in df.columns:
+                df[col] = None
 
     # Counter for when to save
     updated_count = 0
 
     # Loop with progress bar
-    for idx in tqdm(missing_coords.index, desc="Geocoding"):
+    for idx in tqdm(df.index, desc="Geocoding"):
         row = df.loc[idx]
         blk, street, town = row['block'], row['street_name'], row['town']
         lat, lng, building, full_addr = geocode_address(blk, street, town)
@@ -75,7 +74,7 @@ def main():
             df.to_csv(backup_path, index=False)
             print(f"Saved backup: {backup_path}")
 
-    df.to_csv(INPUT_CSV, index=False)
-    print("Geocoding complete. Final CSV saved.")
+    print("Geocoded", updated_count)
 
-main()
+    return df
+

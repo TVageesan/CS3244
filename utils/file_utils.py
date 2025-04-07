@@ -4,7 +4,6 @@ import os
 def read_csv(path):
     if not os.path.exists(path):
         raise Exception("File path: ", path, " not found.")
-    
     return pd.read_csv(path)
 
 def merge_csv(file_paths):

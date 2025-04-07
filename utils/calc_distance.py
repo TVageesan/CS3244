@@ -2,7 +2,7 @@ import pandas as pd
 import math
 
 def add_nearest_mrt(geocoded_df):
-    mrt_df = pd.read_csv('output/mrt.csv')
+    mrt_df = pd.read_csv('data/mrt.csv')
 
     # Haversine distance function (in kilometers)
     def haversine(lat1, lon1, lat2, lon2):

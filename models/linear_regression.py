@@ -54,6 +54,11 @@ def test_ridge(X_train, X_test, y_train, y_test, alpha = 0.5):
     print(f"Ridge RMSE: {rmse_ridge:.5f}")
     print(f"Ridge MAE: {mae_ridge:.5f}")
     print(f"Ridge R2: {r2_ridge:.5f}")
+    
+    ridge_cv_scores = cross_val_score(ridge, X_train, y_train, cv=5, scoring='r2')
+
+    print(f"Cross-validation R2 scores: {ridge_cv_scores}")
+    print(f"Mean CV R2: {ridge_cv_scores.mean():.5f}")
     return y_pred_ridge
 
 def test_lasso(X_train, X_test, y_train, y_test, alpha = 0.5):
@@ -66,24 +71,29 @@ def test_lasso(X_train, X_test, y_train, y_test, alpha = 0.5):
     rmse_lasso = np.sqrt(mse_lasso)
     mae_lasso = mean_absolute_error(y_test, y_pred_lasso)
     r2_lasso = r2_score(y_test, y_pred_lasso)
+    
+    lasso_cv_scores = cross_val_score(lasso, X_train, y_train, cv=5, scoring='r2')
 
     # Print results for Lasso
     print(f"Lasso RMSE: {rmse_lasso:.5f}")
     print(f"Lasso MAE: {mae_lasso:.5f}")
     print(f"Lasso R2: {r2_lasso:.5f}")
+    print(f"Cross-validation R2 scores: {lasso_cv_scores}")
+    print(f"Mean CV R2: {lasso_cv_scores.mean():.5f}")
+
     return y_pred_lasso
 
-def test_alpha_value(train_X, train_y):
+def test_alpha_value(X_train, y_train):
     import warnings
     warnings.simplefilter('ignore')
 
     param_grid = {'alpha': [0.1, 0.5, 1.0, 10, 100]}
     grid_search = GridSearchCV(Lasso(), param_grid, cv=5, scoring='neg_mean_squared_error')
-    grid_search.fit(train_X, train_y)
+    grid_search.fit(X_train, y_train)
     best_alpha_l = grid_search.best_params_['alpha']
     print(f"Best alpha for Lasso: {best_alpha_l}")
 
     grid_search = GridSearchCV(Ridge(), param_grid, cv=5, scoring='neg_mean_squared_error')
-    grid_search.fit(train_X, train_y)
+    grid_search.fit(X_train, y_train)
     best_alpha_r = grid_search.best_params_['alpha']
     print(f"Best alpha for Ridge: {best_alpha_r}")

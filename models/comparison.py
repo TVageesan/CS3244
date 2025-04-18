@@ -44,6 +44,7 @@ def run_model_comparison(feature_configs, data_path='output/clean_data.csv'):
         print(f"\n{'='*50}")
         print(f"Running with configuration: {config_name}")
         print(f"{'='*50}")
+        print(f"Spatial Features = {config.get('spatial_features', False)}")
         
         # Apply encoding with this configuration
         encoded_data = encode_data(
@@ -53,7 +54,8 @@ def run_model_comparison(feature_configs, data_path='output/clean_data.csv'):
             moving_window=config.get('moving_window', False),
             cyclic_month=config.get('cyclic_month', False),
             normal_year=config.get('normal_year', False),
-            normal_price=config.get('normal_price', False)
+            normal_price=config.get('normal_price', False),
+            spatial_features=config.get('spatial_features', False)
         )
         
         # Split the data

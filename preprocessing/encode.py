@@ -286,7 +286,7 @@ def add_moving_window_features(result_df, windows=[3, 6, 12]):
 
 
 
-def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, moving_window = True, cyclic_month = True, normal_year = True, normal_price = True):
+def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, moving_window = True, cyclic_month = True, normal_year = True, normal_price = True, spatial_features = True):
     """
     Encode and transform the cleaned data.
     
@@ -341,4 +341,8 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
     else:
         raise ValueError(f"Unknown encoding method: {encoding_method}")
     
+    if not spatial_features:
+        df.drop(['longitude', 'latitude', 'distance_to_nearest_mrt'], axis=1)
+    
+    print(df.head())    
     return df

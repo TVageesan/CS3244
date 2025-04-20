@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from utils.calc_distance import *
 
 
 def cyclic_encode_month(df):
@@ -215,9 +216,13 @@ def frequency_encode(df, cols, encodings=None):
             
     return result_encodings
 
+import pandas as pd
+
+import pandas as pd
+
 def add_moving_window_features(result_df, windows=[3, 6, 12]):
     """
-    Add moving window features with strategies to handle the beginning values.
+    Add moving window features using only past data (no data leakage).
     
     Args:
         result_df (pandas.DataFrame): DataFrame with required columns
@@ -226,63 +231,59 @@ def add_moving_window_features(result_df, windows=[3, 6, 12]):
     Returns:
         pandas.DataFrame: DataFrame with added window features
     """
+    result_df = result_df.copy()
+    
+    # Create a datetime column for sorting
     result_df['date'] = pd.to_datetime(result_df['year'].astype(str) + '-' + 
-                                      result_df['month'].astype(str).str.zfill(2))
-    
-    # Sort by date to ensure correct time sequence
-    result_df = result_df.sort_values('date')
-    
-    # Group by relevant property characteristics
+                                       result_df['month'].astype(str).str.zfill(2))
+    result_df = result_df.sort_values(['town', 'flat_type', 'flat_model', 'date'])
+
     groupby_columns = ['town', 'flat_type', 'flat_model']
-    grouped = result_df.groupby(groupby_columns)
-    
-    # For each window size, calculate moving features
+
     for window in windows:
-        # Moving average (mean)
-        result_df[f'price_ma_{window}'] = grouped['resale_price'].transform(
-            lambda x: x.rolling(window=window, min_periods=1).mean())
-        
-        # Moving standard deviation with special handling for initial values
-        result_df[f'price_std_{window}'] = grouped['resale_price'].transform(
-            lambda x: x.rolling(window=window, min_periods=2).std())
-        
-        # OPTION 1: Forward fill group STD from first valid value
-        result_df[f'price_std_{window}'] = grouped[f'price_std_{window}'].transform(
-            lambda x: x.fillna(method='bfill'))
-        
-        # OPTION 2 (alternative): For groups with fewer than 2 values, use global std
-        # mask = result_df[f'price_std_{window}'].isna()
-        # if mask.any():
-        #    result_df.loc[mask, f'price_std_{window}'] = result_df['resale_price'].std()
-        
-        # OPTION 3 (alternative): Use expanding window for the first few observations
-        # std_series = grouped['resale_price'].transform(
-        #     lambda x: x.expanding(min_periods=2).std().fillna(x.std() if len(x) > 1 else 0))
-        # result_df[f'price_std_{window}'] = std_series
-        
-        # Exponential moving average
-        result_df[f'price_ema_{window}'] = grouped['resale_price'].transform(
-            lambda x: x.ewm(span=window, min_periods=1, adjust=False).mean())
-    
-    # Make sure no NaN values remain in any of the new columns
-    # Get all the newly added columns
-    window_columns = [col for col in result_df.columns 
-                      if any(f'price_{metric}_{w}' in col 
-                            for metric in ['ma', 'std', 'ema'] 
-                            for w in windows)]
-    window_columns += [col for col in result_df.columns if '_pct' in col]
-    
-    # Check if any NaNs remain and handle them
-    for col in window_columns:
-        if result_df[col].isna().any():
-            # As a last resort, use global statistics if any NaNs still exist
-            if 'std' in col:
-                result_df[col] = result_df[col].fillna(result_df['resale_price'].std())
-            else:
-                result_df[col] = result_df[col].fillna(result_df['resale_price'].mean())
-    
-    result_df = result_df.drop(columns=['date'])
-    return result_df
+        ma_col = f'price_ma_{window}'
+        std_col = f'price_std_{window}'
+        ema_col = f'price_ema_{window}'
+
+        # Initialize columns
+        result_df[ma_col] = None
+        result_df[std_col] = None
+        result_df[ema_col] = None
+
+        # Calculate leakage-free moving features per group
+        for _, group_idx in result_df.groupby(groupby_columns).groups.items():
+            group = result_df.loc[group_idx].copy()
+
+            result_df.loc[group_idx, ma_col] = (
+                group['resale_price']
+                .rolling(window=window, min_periods=1)
+                .mean()
+                .shift(1)  # prevent data leakage
+            )
+
+            result_df.loc[group_idx, std_col] = (
+                group['resale_price']
+                .rolling(window=window, min_periods=2)
+                .std()
+                .shift(1)
+            )
+
+            result_df.loc[group_idx, ema_col] = (
+                group['resale_price']
+                .ewm(span=window, min_periods=1, adjust=False)
+                .mean()
+                .shift(1)
+            )
+
+    # Fill remaining NaNs with forward fill and safe default
+    for col in result_df.columns:
+        if any(metric in col for metric in ['price_ma_', 'price_std_', 'price_ema_']):
+            result_df[col] = result_df[col].fillna(method='ffill')
+            result_df[col] = result_df[col].fillna(0)  # fill initial rows where no data exists
+
+    return result_df.drop(columns=['date'])
+
+
 
 
 
@@ -304,7 +305,7 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
 
     # Define column groups
     categorical_cols = ['town', 'flat_type', 'flat_model']
-    numerical_cols = ['floor_area_sqm', 'avg_floor', 'remaining_lease', 'longitude', 'latitude', 'distance_to_nearest_mrt',
+    numerical_cols = ['floor_area_sqm', 'avg_floor', 'remaining_lease', 'longitude', 'latitude', 'distance_to_nearest_mrt', 'distance_to_cbd', 'distance_to_nearest_mall',
                       'price_ma_3','price_std_3','price_ema_3','price_ma_6','price_std_6','price_ema_6','price_ma_12','price_std_12','price_ema_12'
                      ]
     
@@ -328,7 +329,21 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
     if normal_year:
         normalize_year(df) 
         numerical_cols.append('year')
-
+        
+    if spatial_features:
+        for type in spatial_features:
+            if type == "CBD":
+                df  = add_cbd(df)
+            if type == "MRT":
+                df = add_nearest_mrt(df)
+            if type == "MALL":    
+                df = add_nearest_mall(df)
+                
+        df = df.drop(columns=df.columns[df.columns.str.startswith('town')])
+    else:
+        df = df.drop(['longitude', 'latitude'], axis=1)
+       
+    
     scale_numerical_features(df, numerical_cols)
 
     # Encode categorical features according to specified method
@@ -339,10 +354,5 @@ def encode_data(dataframe, encoding_method='one_hot', handle_outliers=True, movi
     elif encoding_method == 'frequency':
         frequency_encode(df, categorical_cols)
     else:
-        raise ValueError(f"Unknown encoding method: {encoding_method}")
-    
-    if not spatial_features:
-        df.drop(['longitude', 'latitude', 'distance_to_nearest_mrt'], axis=1)
-    
-    print(df.head())    
+        raise ValueError(f"Unknown encoding method: {encoding_method}")    
     return df

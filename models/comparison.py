@@ -44,7 +44,6 @@ def run_model_comparison(feature_configs, data_path='output/clean_data.csv'):
         print(f"\n{'='*50}")
         print(f"Running with configuration: {config_name}")
         print(f"{'='*50}")
-        print(f"Spatial Features = {config.get('spatial_features', False)}")
         
         # Apply encoding with this configuration
         encoded_data = encode_data(
@@ -119,25 +118,19 @@ def plot_model_comparison(results, metric='r2'):
     
     if metric == 'r2':
         title = 'R² Score by Model and Configuration'
-        ylabel = 'R² Score (higher is better)'
+        ylabel = 'R² Score'
         metric_col = 'R²'
-        ascending = False  # Higher is better
     elif metric == 'rmse':
         title = 'RMSE by Model and Configuration'
-        ylabel = 'RMSE (lower is better)'
+        ylabel = 'RMSE'
         metric_col = 'RMSE'
-        ascending = True  # Lower is better
     else:  # 'mae'
         title = 'MAE by Model and Configuration'
-        ylabel = 'MAE (lower is better)'
+        ylabel = 'MAE'
         metric_col = 'MAE'
-        ascending = True  # Lower is better
-    
-    # Sort by performance
-    df_sorted = df.sort_values(by=['Configuration', metric_col], ascending=ascending)
     
     # Plot
-    ax = sns.barplot(x='Configuration', y=metric_col, hue='Model', data=df_sorted)
+    ax = sns.barplot(x='Configuration', y=metric_col, hue='Model', data=df)
     
     plt.title(title, fontsize=16)
     plt.xlabel('Feature Configuration', fontsize=14)
@@ -157,9 +150,7 @@ def plot_model_comparison(results, metric='r2'):
     
     plt.tight_layout()
     plt.show()
-    
-    # Return the sorted DataFrame for numerical comparison
-    return df_sorted
+
 
 def summarize_best_models(results):
     """
